@@ -1,8 +1,9 @@
 package tcp
 
 const (
-	INIT_INFO      = "INIT_INFO"
-	START_REQUESTS = "START_REQUESTS"
+	INIT_INFO              = "INIT_INFO"
+	START_REQUESTS         = "START_REQUESTS"
+	CLIENT_FINISH_REQUESTS = "CLIENT_FINISH_REQUESTS"
 )
 
 type Packet struct {

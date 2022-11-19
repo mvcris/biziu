@@ -13,6 +13,7 @@ const (
 	SERVER_READY                = "READY"
 	SERVER_WAITING_NODES        = "SERVER_WAITING_NODES"
 	SERVER_CLIENTS_STARTED_FLOW = "SERVER_STARTED_FLOW"
+	SERVER_ALL_NODES_FINISH     = "SERVER_ALL_NODES_FINISH"
 	SERVER_FINISH               = "SERVER_FINISH"
 	SERVER_NODES_READY          = "SERVER_NODES_READY"
 )
@@ -32,7 +33,7 @@ type TcpServer struct {
 	ReqDivisionRemainder uint32
 	ConnectedNodes       uint32
 	ReadyNodes           uint32
-	FinishedNodes        uint16
+	FinishedNodes        uint32
 	State                string
 	stateCh              chan string
 	registerCh           chan *Client
@@ -40,6 +41,7 @@ type TcpServer struct {
 	clients              map[*Client]bool
 	listener             net.Listener
 	mu                   sync.Mutex
+	hasFinished          chan bool
 }
 
 func NewTcpServer(requests uint32, concurrency uint32, nodes uint32, port uint16) *TcpServer {
@@ -55,6 +57,7 @@ func NewTcpServer(requests uint32, concurrency uint32, nodes uint32, port uint16
 		State:        SERVER_WAITING_NODES,
 		ReadyNodes:   0,
 		stateCh:      make(chan string, 256),
+		hasFinished:  make(chan bool, 16),
 	}
 }
 
@@ -70,6 +73,7 @@ func (s *TcpServer) Start() {
 	s.splitRequests()
 	s.listener = listener
 	go s.Listen()
+serverLoop:
 	for {
 		select {
 		case client := <-s.registerCh:
@@ -79,9 +83,11 @@ func (s *TcpServer) Start() {
 		case state := <-s.stateCh:
 			s.State = state
 			s.handleServerState(state)
+		case <-s.hasFinished:
+			break serverLoop
 		}
 	}
-
+	fmt.Println("Todos os processos acabaram")
 }
 
 func (s *TcpServer) Listen() {
@@ -117,6 +123,8 @@ func (s *TcpServer) handleMessage(p Packet, client *Client) {
 	switch p.Action {
 	case INIT_INFO:
 		s.handleInitInfo(p, client)
+	case CLIENT_FINISH_REQUESTS:
+		s.handleClientFinishRequest(p, client)
 	}
 }
 
@@ -170,6 +178,7 @@ func (s *TcpServer) handleInitInfo(p Packet, client *Client) {
 }
 
 func (s *TcpServer) handleServerState(state string) {
+	fmt.Println(state)
 	switch state {
 	case SERVER_NODES_READY:
 		p := &Packet{Action: START_REQUESTS}
@@ -179,5 +188,15 @@ func (s *TcpServer) handleServerState(state string) {
 		s.stateCh <- SERVER_CLIENTS_STARTED_FLOW
 	case SERVER_CLIENTS_STARTED_FLOW:
 		fmt.Println("clientes inciaram")
+	case SERVER_ALL_NODES_FINISH:
+		s.hasFinished <- true
+	}
+}
+
+func (s *TcpServer) handleClientFinishRequest(p Packet, client *Client) {
+	atomic.AddUint32(&s.FinishedNodes, 1)
+
+	if s.FinishedNodes == s.Nodes {
+		s.stateCh <- SERVER_ALL_NODES_FINISH
 	}
 }
