@@ -130,6 +130,7 @@ func (s *TcpServer) handleMessage(p Packet, client *Client) {
 
 func (s *TcpServer) sendMessage(packet *Packet, c *Client) {
 	if err := c.encoder.Encode(packet); err != nil {
+		fmt.Printf("%+v\n", packet)
 		fmt.Println(err)
 		fmt.Println("erro ao enviar mensagem")
 	}

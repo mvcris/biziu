@@ -6,7 +6,9 @@ import (
 	"log"
 	"math"
 	"net"
+	"os"
 	"sync/atomic"
+	"time"
 )
 
 type TcpClient struct {
@@ -57,11 +59,12 @@ clientLoop:
 }
 
 func (c *TcpClient) readMessages() {
-	defer c.conn.Close()
 	for {
 		var p Packet
+		fmt.Println(p.Action)
 		if err := c.decoder.Decode(&p); err != nil {
-			panic(err)
+			fmt.Println(err)
+			//panic(err)
 		}
 		c.handleMessage(p)
 	}
@@ -98,13 +101,12 @@ func (c *TcpClient) startRequests(p Packet) {
 	for i := 0; i < int(c.Concurrency); i++ {
 		for n := 0; n < int(c.ReqPerGo); n++ {
 			go c.execute()
-			if n == int(c.Concurrency) {
-				if c.ReqPerGoRem > 0 {
-					for m := 0; m < int(c.ReqPerGoRem); m++ {
-						go c.execute()
-					}
-				}
-			}
+		}
+	}
+
+	if c.ReqPerGoRem > 0 {
+		for i := 0; i < int(c.ReqPerGoRem); i++ {
+			go c.execute()
 		}
 	}
 
@@ -112,8 +114,17 @@ func (c *TcpClient) startRequests(p Packet) {
 
 func (c *TcpClient) execute() {
 	atomic.AddUint32(&c.ExecRequests, 1)
-	fmt.Printf("total req: %d total exec: %d\n", c.Requests, c.ExecRequests)
+	f, err := os.OpenFile("text3.log",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+	if _, err := f.WriteString("text to append\n"); err != nil {
+		log.Println(err)
+	}
 	if c.Requests == c.ExecRequests {
+		time.Sleep(1 * time.Second)
 		c.hasFinished <- true
 	}
 }
