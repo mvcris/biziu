@@ -11,37 +11,40 @@ import (
 )
 
 type RequestClient struct {
-	Parser parser.Parser
+	Properties *parser.Properties
 }
 
 type ResponseData struct {
 	Status int
 	Body   []byte
-	Time   time.Duration
+	Time   int64
 }
 
-func NewRequestClient(parser *parser.Parser) *RequestClient {
+func NewRequestClient(properties *parser.Properties) *RequestClient {
 	return &RequestClient{
-		Parser: *parser,
+		Properties: properties,
 	}
 }
 
-func (r *RequestClient) DoRequest() (*ResponseData, error) {
-	postBody, err := json.Marshal(r.Parser.Content.Properties.Body)
+func (r *RequestClient) DoRequest() *ResponseData {
+	postBody, err := json.Marshal(r.Properties.Body)
 
 	if err != nil {
-		return nil, err
+		//@TODO: invalid json, should be return a 500 with invalid json message error?
+		panic(err)
 	}
 
 	responseBody := bytes.NewBuffer(postBody)
-	req, err := http.NewRequest(r.Parser.Content.Properties.Method, r.Parser.Content.Properties.Url, responseBody)
+	req, err := http.NewRequest(r.Properties.Method, r.Properties.Url, responseBody)
 
 	if err != nil {
-		return nil, err
+		//@TODO: invalid properties passed to RequestClient,
+		panic(err)
 	}
+
 	defer req.Body.Close()
-	for key := range r.Parser.Content.Properties.Header {
-		req.Header.Set(key, r.Parser.Content.Properties.Header[key])
+	for key := range r.Properties.Header {
+		req.Header.Set(key, r.Properties.Header[key])
 	}
 
 	client := &http.Client{}
@@ -50,21 +53,28 @@ func (r *RequestClient) DoRequest() (*ResponseData, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return &ResponseData{
+			Status: 500,
+			Body:   nil,
+			Time:   time.Since(start).Milliseconds(),
+		}
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
+
 	if err != nil {
-		return nil, err
+		return &ResponseData{
+			Status: resp.StatusCode,
+			Body:   nil,
+			Time:   time.Since(start).Milliseconds(),
+		}
 	}
 
-	duration := time.Since(start)
+	duration := time.Since(start).Milliseconds()
 
-	response := &ResponseData{
+	return &ResponseData{
 		Status: resp.StatusCode,
 		Time:   duration,
 		Body:   body,
 	}
-
-	return response, nil
 }

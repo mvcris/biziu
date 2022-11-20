@@ -11,14 +11,16 @@ type Parser struct {
 	Content  Content
 }
 
+type Properties struct {
+	Url    string            `json:"url"`
+	Method string            `json:"method"`
+	Header map[string]string `json:"headers"`
+	Body   map[string]any    `json:"body"`
+}
+
 type Content struct {
-	Type       string `json:"type"`
-	Properties struct {
-		Url    string            `json:"url"`
-		Method string            `json:"method"`
-		Header map[string]string `json:"headers"`
-		Body   map[string]any    `json:"body"`
-	} `json:"properties"`
+	Type       string     `json:"type"`
+	Properties Properties `json:"properties"`
 }
 
 func NewParser(filePath string) *Parser {

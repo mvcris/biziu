@@ -7,6 +7,9 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+
+	"github.com/mvcris/biziu/internal/parser"
+	"github.com/mvcris/biziu/internal/request"
 )
 
 const (
@@ -34,6 +37,8 @@ type TcpServer struct {
 	ConnectedNodes       uint32
 	ReadyNodes           uint32
 	FinishedNodes        uint32
+	File                 string
+	Content              parser.Content
 	State                string
 	reqRes               uint32
 	stateCh              chan string
@@ -45,7 +50,7 @@ type TcpServer struct {
 	hasFinished          chan bool
 }
 
-func NewTcpServer(requests uint32, concurrency uint32, nodes uint32, port uint16) *TcpServer {
+func NewTcpServer(requests uint32, concurrency uint32, nodes uint32, port uint16, file string) *TcpServer {
 	return &TcpServer{
 		Requests:     requests,
 		Concurrency:  concurrency,
@@ -60,11 +65,19 @@ func NewTcpServer(requests uint32, concurrency uint32, nodes uint32, port uint16
 		stateCh:      make(chan string, 256),
 		hasFinished:  make(chan bool, 16),
 		reqRes:       0,
+		File:         file,
 	}
 }
 
 func (s *TcpServer) Start() {
 	gob.Register(InitClientInfo{})
+	gob.Register(request.ResponseData{})
+	gob.Register(map[string]interface{}{})
+	gob.Register(map[string]any{})
+	gob.Register(map[string]string{})
+	gob.Register([]interface{}{})
+	parser := parser.NewParser(s.File)
+	s.Content = parser.Content
 	port := fmt.Sprintf(":%d", s.Port)
 	listener, err := net.Listen("tcp", port)
 
@@ -156,7 +169,15 @@ func (s *TcpServer) addNode(client *Client) {
 	if len(s.clients) == int(s.Nodes) {
 		requests += s.ReqDivisionRemainder
 	}
-	initPacket := &InitClientInfo{Requests: requests, Concurrency: s.Concurrency}
+
+	initPacket := &InitClientInfo{
+		Requests:    requests,
+		Concurrency: s.Concurrency,
+		Url:         s.Content.Properties.Url,
+		Method:      s.Content.Properties.Method,
+		Header:      s.Content.Properties.Header,
+		Body:        s.Content.Properties.Body,
+	}
 	s.sendMessage(&Packet{Action: INIT_INFO, Payload: initPacket}, client)
 }
 
@@ -183,7 +204,6 @@ func (s *TcpServer) handleInitInfo(p Packet, client *Client) {
 }
 
 func (s *TcpServer) handleServerState(state string) {
-	fmt.Println(state)
 	switch state {
 	case SERVER_NODES_READY:
 		p := &Packet{Action: START_REQUESTS}
