@@ -17,8 +17,8 @@ type TcpClient struct {
 	ExecRequests uint32
 	ReqDone      uint32
 	Concurrency  uint32
-	ReqPerGo     uint32
-	ReqPerGoRem  uint32
+	ReqLoopTimes uint32
+	ReqLoopRem   uint32
 	encoder      *gob.Encoder
 	decoder      *gob.Decoder
 	conn         net.Conn
@@ -67,8 +67,8 @@ func (c *TcpClient) readMessages() {
 }
 
 func (c *TcpClient) slipRequests() {
-	c.ReqPerGo = uint32(math.Floor(float64(c.Requests) / float64(c.Concurrency)))
-	c.ReqPerGoRem = c.Requests % c.Concurrency
+	c.ReqLoopTimes = uint32(math.Floor(float64(c.Requests) / float64(c.Concurrency)))
+	c.ReqLoopRem = c.Requests % c.Concurrency
 }
 
 func (c *TcpClient) sendMessage(p Packet) {
@@ -94,20 +94,27 @@ func (c *TcpClient) handleInitInfo(p Packet) {
 }
 
 func (c *TcpClient) startRequests(p Packet) {
-	for i := 0; i < int(c.Concurrency); i++ {
-		for n := 0; n < int(c.ReqPerGo); n++ {
-			c.wg.Add(1)
-			go c.execute()
+	fmt.Printf("loop times: %d", c.ReqLoopTimes)
+	count := 0
+	for i := 0; i < int(c.ReqLoopTimes); i++ {
+		count++
+		remainder := false
+		if count == int(c.ReqLoopTimes) {
+			remainder = true
 		}
+		c.startConcurrencyRequest(p, remainder)
 	}
+}
 
-	if c.ReqPerGoRem > 0 {
-		for i := 0; i < int(c.ReqPerGoRem); i++ {
-			c.wg.Add(1)
-			go c.execute()
-		}
+func (c *TcpClient) startConcurrencyRequest(p Packet, remainder bool) {
+	total := c.Concurrency
+	if remainder {
+		total += c.ReqLoopRem
 	}
-
+	for i := 0; i < int(total); i++ {
+		c.wg.Add(1)
+		go c.execute()
+	}
 }
 
 func (c *TcpClient) execute() {

@@ -37,6 +37,7 @@ type TcpServer struct {
 	ReadyNodes           uint32
 	FinishedNodes        uint32
 	State                string
+	reqRes               uint32
 	stateCh              chan string
 	registerCh           chan *Client
 	unregisterCh         chan *Client
@@ -60,6 +61,7 @@ func NewTcpServer(requests uint32, concurrency uint32, nodes uint32, port uint16
 		ReadyNodes:   0,
 		stateCh:      make(chan string, 256),
 		hasFinished:  make(chan bool, 16),
+		reqRes:       0,
 	}
 }
 
@@ -193,8 +195,6 @@ func (s *TcpServer) handleServerState(state string) {
 		s.stateCh <- SERVER_CLIENTS_STARTED_FLOW
 	case SERVER_CLIENTS_STARTED_FLOW:
 		fmt.Println("clientes inciaram")
-	case SERVER_ALL_NODES_FINISH:
-		s.hasFinished <- true
 	}
 }
 
@@ -207,6 +207,7 @@ func (s *TcpServer) handleClientFinishRequest(p Packet, client *Client) {
 }
 
 func (s *TcpServer) handleRequestResponse(p Packet, client *Client) {
+	atomic.AddUint32(&s.reqRes, 1)
 	f, err := os.OpenFile("text.log",
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -215,5 +216,9 @@ func (s *TcpServer) handleRequestResponse(p Packet, client *Client) {
 	defer f.Close()
 	if _, err := f.WriteString("text to append\n"); err != nil {
 		log.Println(err)
+	}
+
+	if s.reqRes == s.Requests {
+		s.hasFinished <- true
 	}
 }
