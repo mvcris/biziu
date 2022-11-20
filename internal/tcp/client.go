@@ -6,7 +6,7 @@ import (
 	"log"
 	"math"
 	"net"
-	"os"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -23,6 +23,7 @@ type TcpClient struct {
 	decoder      *gob.Decoder
 	conn         net.Conn
 	hasFinished  chan bool
+	wg           sync.WaitGroup
 }
 
 func NewTcpClient(host string) *TcpClient {
@@ -32,6 +33,7 @@ func NewTcpClient(host string) *TcpClient {
 		decoder:      &gob.Decoder{},
 		hasFinished:  make(chan bool, 1),
 		ExecRequests: 0,
+		wg:           sync.WaitGroup{},
 	}
 }
 
@@ -42,19 +44,14 @@ func (c *TcpClient) Start() {
 	if err != nil {
 		log.Fatal("Connection error", err)
 	}
-
 	c.conn = conn
 	c.encoder = gob.NewEncoder(conn)
 	c.decoder = gob.NewDecoder(conn)
 	go c.readMessages()
-clientLoop:
-	for {
-		select {
-		case <-c.hasFinished:
-			c.sendMessage(Packet{Action: CLIENT_FINISH_REQUESTS})
-			break clientLoop
-		}
-	}
+
+	<-c.hasFinished
+	c.sendMessage(Packet{Action: CLIENT_FINISH_REQUESTS})
+	c.wg.Wait()
 	fmt.Println("node finalizou")
 }
 
@@ -63,8 +60,7 @@ func (c *TcpClient) readMessages() {
 		var p Packet
 		fmt.Println(p.Action)
 		if err := c.decoder.Decode(&p); err != nil {
-			fmt.Println(err)
-			//panic(err)
+			panic(err)
 		}
 		c.handleMessage(p)
 	}
@@ -100,12 +96,14 @@ func (c *TcpClient) handleInitInfo(p Packet) {
 func (c *TcpClient) startRequests(p Packet) {
 	for i := 0; i < int(c.Concurrency); i++ {
 		for n := 0; n < int(c.ReqPerGo); n++ {
+			c.wg.Add(1)
 			go c.execute()
 		}
 	}
 
 	if c.ReqPerGoRem > 0 {
 		for i := 0; i < int(c.ReqPerGoRem); i++ {
+			c.wg.Add(1)
 			go c.execute()
 		}
 	}
@@ -114,17 +112,10 @@ func (c *TcpClient) startRequests(p Packet) {
 
 func (c *TcpClient) execute() {
 	atomic.AddUint32(&c.ExecRequests, 1)
-	f, err := os.OpenFile("text3.log",
-		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Println(err)
-	}
-	defer f.Close()
-	if _, err := f.WriteString("text to append\n"); err != nil {
-		log.Println(err)
-	}
+	p := Packet{Action: REQUEST_RESPONSE, Payload: time.Now().UTC().Unix()}
+	c.sendMessage(p)
+	c.wg.Done()
 	if c.Requests == c.ExecRequests {
-		time.Sleep(1 * time.Second)
 		c.hasFinished <- true
 	}
 }

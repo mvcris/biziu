@@ -3,8 +3,10 @@ package tcp
 import (
 	"encoding/gob"
 	"fmt"
+	"log"
 	"math"
 	"net"
+	"os"
 	"sync"
 	"sync/atomic"
 )
@@ -125,6 +127,8 @@ func (s *TcpServer) handleMessage(p Packet, client *Client) {
 		s.handleInitInfo(p, client)
 	case CLIENT_FINISH_REQUESTS:
 		s.handleClientFinishRequest(p, client)
+	case REQUEST_RESPONSE:
+		s.handleRequestResponse(p, client)
 	}
 }
 
@@ -199,5 +203,17 @@ func (s *TcpServer) handleClientFinishRequest(p Packet, client *Client) {
 
 	if s.FinishedNodes == s.Nodes {
 		s.stateCh <- SERVER_ALL_NODES_FINISH
+	}
+}
+
+func (s *TcpServer) handleRequestResponse(p Packet, client *Client) {
+	f, err := os.OpenFile("text.log",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+	if _, err := f.WriteString("text to append\n"); err != nil {
+		log.Println(err)
 	}
 }
