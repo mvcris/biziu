@@ -3,7 +3,6 @@ package tcp
 import (
 	"encoding/gob"
 	"fmt"
-	"log"
 	"math"
 	"net"
 	"sync"
@@ -40,9 +39,9 @@ func NewTcpClient(host string) *TcpClient {
 func (c *TcpClient) Start() {
 	gob.Register(InitClientInfo{})
 	fmt.Println("start client")
-	conn, err := net.Dial("tcp", "localhost:3000")
+	conn, err := net.Dial("tcp", c.Host)
 	if err != nil {
-		log.Fatal("Connection error", err)
+		panic("server not found")
 	}
 	c.conn = conn
 	c.encoder = gob.NewEncoder(conn)
@@ -58,9 +57,9 @@ func (c *TcpClient) Start() {
 func (c *TcpClient) readMessages() {
 	for {
 		var p Packet
-		fmt.Println(p.Action)
 		if err := c.decoder.Decode(&p); err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 		c.handleMessage(p)
 	}
@@ -94,7 +93,6 @@ func (c *TcpClient) handleInitInfo(p Packet) {
 }
 
 func (c *TcpClient) startRequests(p Packet) {
-	fmt.Printf("loop times: %d", c.ReqLoopTimes)
 	count := 0
 	for i := 0; i < int(c.ReqLoopTimes); i++ {
 		count++
