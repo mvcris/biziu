@@ -17,7 +17,7 @@ type Content struct {
 		Url    string            `json:"url"`
 		Method string            `json:"method"`
 		Header map[string]string `json:"headers"`
-		Body   map[string]string `json:"body"`
+		Body   map[string]any    `json:"body"`
 	} `json:"properties"`
 }
 
