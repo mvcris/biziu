@@ -12,6 +12,7 @@ var requests uint32
 var concurrency uint32
 var nodes uint32
 var port uint16
+var file string
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -19,7 +20,7 @@ var serverCmd = &cobra.Command{
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example`,
 	Run: func(cmd *cobra.Command, args []string) {
-		server := tcp.NewTcpServer(requests, concurrency, nodes, port)
+		server := tcp.NewTcpServer(requests, concurrency, nodes, port, file)
 		server.Start()
 	},
 }
@@ -30,6 +31,7 @@ func init() {
 	serverCmd.PersistentFlags().Uint32VarP(&concurrency, "concurrency", "c", 0, "total number of concurrency requests")
 	serverCmd.PersistentFlags().Uint32VarP(&nodes, "nodes", "n", 0, "total number of nodes")
 	serverCmd.PersistentFlags().Uint16VarP(&port, "port", "p", 3000, "port to run server, default is 3000")
+	serverCmd.PersistentFlags().StringVarP(&file, "file", "f", "", "file with request template")
 	serverCmd.MarkFlagRequired("r")
 	serverCmd.MarkFlagRequired("concurrency")
 	serverCmd.MarkFlagRequired("nodes")
