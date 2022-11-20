@@ -8,6 +8,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/mvcris/biziu/internal/parser"
+	"github.com/mvcris/biziu/internal/request"
 )
 
 type TcpClient struct {
@@ -23,6 +26,9 @@ type TcpClient struct {
 	conn         net.Conn
 	hasFinished  chan bool
 	wg           sync.WaitGroup
+	Content      parser.Content
+	Properties   *parser.Properties
+	reqClient    *request.RequestClient
 }
 
 func NewTcpClient(host string) *TcpClient {
@@ -38,6 +44,11 @@ func NewTcpClient(host string) *TcpClient {
 
 func (c *TcpClient) Start() {
 	gob.Register(InitClientInfo{})
+	gob.Register(request.ResponseData{})
+	gob.Register(map[string]interface{}{})
+	gob.Register(map[string]any{})
+	gob.Register(map[string]string{})
+	gob.Register([]interface{}{})
 	fmt.Println("start client")
 	conn, err := net.Dial("tcp", c.Host)
 	if err != nil {
@@ -65,7 +76,7 @@ func (c *TcpClient) readMessages() {
 	}
 }
 
-func (c *TcpClient) slipRequests() {
+func (c *TcpClient) splitRequests() {
 	c.ReqLoopTimes = uint32(math.Floor(float64(c.Requests) / float64(c.Concurrency)))
 	c.ReqLoopRem = c.Requests % c.Concurrency
 }
@@ -87,7 +98,14 @@ func (c *TcpClient) handleInitInfo(p Packet) {
 	initInfo := p.Payload.(InitClientInfo)
 	c.Requests = initInfo.Requests
 	c.Concurrency = initInfo.Concurrency
-	c.slipRequests()
+	c.Properties = &parser.Properties{
+		Url:    initInfo.Url,
+		Method: initInfo.Method,
+		Header: initInfo.Header,
+		Body:   initInfo.Body,
+	}
+	c.reqClient = request.NewRequestClient(c.Properties)
+	c.splitRequests()
 	initInfoResponse := &Packet{Action: INIT_INFO, Payload: ""}
 	c.sendMessage(*initInfoResponse)
 }
@@ -118,6 +136,7 @@ func (c *TcpClient) startConcurrencyRequest(p Packet, remainder bool) {
 func (c *TcpClient) execute() {
 	atomic.AddUint32(&c.ExecRequests, 1)
 	p := Packet{Action: REQUEST_RESPONSE, Payload: time.Now().UTC().Unix()}
+	c.reqClient.DoRequest()
 	c.sendMessage(p)
 	c.wg.Done()
 	if c.Requests == c.ExecRequests {

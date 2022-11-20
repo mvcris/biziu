@@ -16,4 +16,8 @@ type Packet struct {
 type InitClientInfo struct {
 	Requests    uint32
 	Concurrency uint32
+	Url         string            `json:"url"`
+	Method      string            `json:"method"`
+	Header      map[string]string `json:"headers"`
+	Body        map[string]any    `json:"body"`
 }

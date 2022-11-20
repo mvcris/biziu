@@ -1,0 +1,16 @@
+{
+    "type":"http",
+    "properties": {
+        "url":"http://localhost:3005",
+        "method":"POST",
+        "headers": {
+            "key":"value"
+        },
+        "body":{
+            "hello":"world",
+            "my": [
+                {"heelo":"2"}
+            ]
+        }
+    }
+}
