@@ -135,11 +135,11 @@ func (c *TcpClient) startConcurrencyRequest(p Packet, remainder bool) {
 	c.loopWg.Done()
 	for i := 0; i < int(total); i++ {
 		c.wg.Add(1)
-		go c.execute(total)
+		go c.execute()
 	}
 }
 
-func (c *TcpClient) execute(total uint32) {
+func (c *TcpClient) execute() {
 	atomic.AddUint32(&c.ExecRequests, 1)
 	p := Packet{Action: REQUEST_RESPONSE, Payload: time.Now().UTC().Unix()}
 	c.reqClient.DoRequest()
