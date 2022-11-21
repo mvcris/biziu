@@ -23,8 +23,24 @@ func (s *ServerTcpTestSuite) TestServerReques() {
 	server := NewTcpServer(10, 1, 1, 3001, "../../example.json")
 
 	go server.Start()
-	time.Sleep(3 * time.Second)
+	time.Sleep(2 * time.Second)
 	assert.Equal(s.T(), len(server.clients), 1)
+
+}
+
+func (s *ServerTcpTestSuite) TestServerRequestMultiNodes() {
+	go func() {
+		time.Sleep(time.Second * 1)
+		client := NewTcpClient(":3004")
+		go client.Start()
+		time.Sleep(time.Second * 1)
+		client2 := NewTcpClient(":3004")
+		go client2.Start()
+		time.Sleep(time.Second * 1)
+	}()
+	server := NewTcpServer(21, 10, 2, 3004, "../../example.json")
+	go server.Start()
+	time.Sleep(6 * time.Second)
 
 }
 

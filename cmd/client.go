@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var p string
+
 // clientCmd represents the client command
 var clientCmd = &cobra.Command{
 	Use:   "client",
@@ -19,7 +21,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		client := tcp.NewTcpClient(":3001")
+		client := tcp.NewTcpClient(p)
 		client.Start()
 	},
 }
@@ -32,7 +34,7 @@ func init() {
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// clientCmd.PersistentFlags().String("foo", "", "A help for foo")
-
+	clientCmd.PersistentFlags().StringVarP(&p, "host", "s", "", "host")
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// clientCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
