@@ -26,6 +26,7 @@ type TcpClient struct {
 	conn         net.Conn
 	hasFinished  chan bool
 	wg           sync.WaitGroup
+	loopWg       sync.WaitGroup
 	Content      parser.Content
 	Properties   *parser.Properties
 	reqClient    *request.RequestClient
@@ -39,6 +40,7 @@ func NewTcpClient(host string) *TcpClient {
 		hasFinished:  make(chan bool, 1),
 		ExecRequests: 0,
 		wg:           sync.WaitGroup{},
+		loopWg:       sync.WaitGroup{},
 	}
 }
 
@@ -113,12 +115,14 @@ func (c *TcpClient) handleInitInfo(p Packet) {
 func (c *TcpClient) startRequests(p Packet) {
 	count := 0
 	for i := 0; i < int(c.ReqLoopTimes); i++ {
+		c.loopWg.Add(1)
 		count++
 		remainder := false
 		if count == int(c.ReqLoopTimes) {
 			remainder = true
 		}
 		c.startConcurrencyRequest(p, remainder)
+		c.loopWg.Wait()
 	}
 }
 
@@ -127,6 +131,8 @@ func (c *TcpClient) startConcurrencyRequest(p Packet, remainder bool) {
 	if remainder {
 		total += c.ReqLoopRem
 	}
+	c.loopWg.Add(int(total))
+	c.loopWg.Done()
 	for i := 0; i < int(total); i++ {
 		c.wg.Add(1)
 		go c.execute()
@@ -139,6 +145,7 @@ func (c *TcpClient) execute() {
 	c.reqClient.DoRequest()
 	c.sendMessage(p)
 	c.wg.Done()
+	c.loopWg.Done()
 	if c.Requests == c.ExecRequests {
 		c.hasFinished <- true
 	}
