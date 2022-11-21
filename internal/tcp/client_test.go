@@ -26,6 +26,7 @@ func (s *ClientTcpTestSuite) TestInitRequest() {
 		encoder.Encode(&Packet{Action: START_REQUESTS, Payload: initPacket})
 	}()
 
+	time.Sleep(time.Second * 2)
 	client := NewTcpClient("localhost:3000")
 	go client.Start()
 	time.Sleep(time.Second * 3)
@@ -38,8 +39,6 @@ func (s *ClientTcpTestSuite) TestInitRequest() {
 	assert.Equal(s.T(), client.ExecRequests, uint32(10))
 }
 
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
-func TestExampleTestSuite(t *testing.T) {
+func TestClientTcpTestSuite(t *testing.T) {
 	suite.Run(t, new(ClientTcpTestSuite))
 }
