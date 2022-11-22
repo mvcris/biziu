@@ -1,8 +1,14 @@
 {
+    "options": {
+        "requests":100,
+        "concurrency":10,
+        "nodes":1,
+        "port":3000
+    },
     "type":"http",
     "properties": {
         "url":"http://localhost:3005",
-        "method":"POST",
+        "method":"GET",
         "headers": {
             "key":"value"
         },

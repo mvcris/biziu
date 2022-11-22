@@ -2,7 +2,6 @@ package parser
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 )
 
@@ -18,9 +17,17 @@ type Properties struct {
 	Body   map[string]any    `json:"body"`
 }
 
+type Options struct {
+	Requests    uint32 `json:"requests"`
+	Concurrency uint32 `json:"concurrency"`
+	Nodes       uint32 `json:"nodes"`
+	Port        uint16 `json:"port"`
+}
+
 type Content struct {
 	Type       string     `json:"type"`
 	Properties Properties `json:"properties"`
+	Options    Options    `json:"options"`
 }
 
 func NewParser(filePath string) *Parser {
@@ -32,19 +39,13 @@ func NewParser(filePath string) *Parser {
 }
 
 func (p *Parser) parseTemplateFile() {
-	jsonFile, err := os.Open(p.filePath)
-
-	if err != nil {
-		panic(err)
-	}
-	defer jsonFile.Close()
-	byteValue, err := ioutil.ReadAll(jsonFile)
+	bytes, err := os.ReadFile(p.filePath)
 
 	if err != nil {
 		panic(err)
 	}
 
-	err = json.Unmarshal(byteValue, &p.Content)
+	err = json.Unmarshal(bytes, &p.Content)
 	if err != nil {
 		panic(err)
 	}

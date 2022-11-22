@@ -20,7 +20,7 @@ func (s *ServerTcpTestSuite) TestServerReques() {
 		go client.Start()
 		time.Sleep(time.Second * 3)
 	}()
-	server := NewTcpServer(10, 1, 1, 3001, "../../example.json")
+	server := NewTcpServer("../../example.json", 3001)
 
 	go server.Start()
 	time.Sleep(2 * time.Second)
@@ -38,7 +38,7 @@ func (s *ServerTcpTestSuite) TestServerRequestMultiNodes() {
 		go client2.Start()
 		time.Sleep(time.Second * 1)
 	}()
-	server := NewTcpServer(21, 10, 2, 3004, "../../example.json")
+	server := NewTcpServer("../../example.json", 3004)
 	go server.Start()
 	time.Sleep(6 * time.Second)
 
@@ -53,7 +53,7 @@ func (s *ServerTcpTestSuite) TestServerRequesFullPool() {
 		go client2.Start()
 		time.Sleep(time.Second * 1)
 	}()
-	server := NewTcpServer(10, 1, 1, 3002, "../../example.json")
+	server := NewTcpServer("../../example.json", 3002)
 
 	go server.Start()
 	time.Sleep(2 * time.Second)
@@ -68,7 +68,7 @@ func (s *ServerTcpTestSuite) TestServerDropNode() {
 		client.conn.Close()
 	}()
 
-	server := NewTcpServer(10, 1, 1, 3003, "../../example.json")
+	server := NewTcpServer("../../example.json", 3003)
 	go server.Start()
 	time.Sleep(2 * time.Second)
 }
