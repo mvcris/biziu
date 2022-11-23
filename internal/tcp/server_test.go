@@ -20,7 +20,7 @@ func (s *ServerTcpTestSuite) TestServerReques() {
 		go client.Start()
 		time.Sleep(time.Second * 3)
 	}()
-	server := NewTcpServer("../../example.json", 3001)
+	server := NewTcpServer("../../test/example.json", 3001)
 
 	go server.Start()
 	time.Sleep(2 * time.Second)
@@ -38,7 +38,7 @@ func (s *ServerTcpTestSuite) TestServerRequestMultiNodes() {
 		go client2.Start()
 		time.Sleep(time.Second * 1)
 	}()
-	server := NewTcpServer("../../example.json", 3004)
+	server := NewTcpServer("../../test/example.json", 3004)
 	go server.Start()
 	time.Sleep(6 * time.Second)
 
@@ -53,7 +53,7 @@ func (s *ServerTcpTestSuite) TestServerRequesFullPool() {
 		go client2.Start()
 		time.Sleep(time.Second * 1)
 	}()
-	server := NewTcpServer("../../example.json", 3002)
+	server := NewTcpServer("../../test/example.json", 3002)
 
 	go server.Start()
 	time.Sleep(2 * time.Second)
@@ -68,13 +68,11 @@ func (s *ServerTcpTestSuite) TestServerDropNode() {
 		client.conn.Close()
 	}()
 
-	server := NewTcpServer("../../example.json", 3003)
+	server := NewTcpServer("../../test/example.json", 3003)
 	go server.Start()
 	time.Sleep(2 * time.Second)
 }
 
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
 func TestServerTcpTestSuite(t *testing.T) {
 	suite.Run(t, new(ServerTcpTestSuite))
 }
