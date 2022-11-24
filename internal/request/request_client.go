@@ -10,6 +10,10 @@ import (
 	"github.com/mvcris/biziu/internal/parser"
 )
 
+type Request interface {
+	doRequest() *ResponseData
+}
+
 type RequestClient struct {
 	Properties *parser.Properties
 }
