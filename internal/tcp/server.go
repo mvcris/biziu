@@ -50,12 +50,8 @@ type TcpServer struct {
 	hasFinished          chan bool
 }
 
-func NewTcpServer(requests uint32, concurrency uint32, nodes uint32, port uint16, file string) *TcpServer {
+func NewTcpServer(file string, port uint16) *TcpServer {
 	return &TcpServer{
-		Requests:     requests,
-		Concurrency:  concurrency,
-		Nodes:        nodes,
-		Port:         port,
 		registerCh:   make(chan *Client),
 		unregisterCh: make(chan *Client),
 		clients:      make(map[*Client]bool),
@@ -66,6 +62,7 @@ func NewTcpServer(requests uint32, concurrency uint32, nodes uint32, port uint16
 		hasFinished:  make(chan bool, 16),
 		reqRes:       0,
 		File:         file,
+		Port:         port,
 	}
 }
 
@@ -78,6 +75,14 @@ func (s *TcpServer) Start() {
 	gob.Register([]interface{}{})
 	parser := parser.NewParser(s.File)
 	s.Content = parser.Content
+	s.Requests = s.Content.Options.Requests
+	s.Concurrency = s.Content.Options.Concurrency
+	s.Nodes = s.Content.Options.Nodes
+
+	if s.Port <= 0 {
+		s.Port = s.Content.Options.Port
+	}
+
 	port := fmt.Sprintf(":%d", s.Port)
 	listener, err := net.Listen("tcp", port)
 
