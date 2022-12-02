@@ -78,7 +78,6 @@ func (s *TcpServer) Start() {
 	s.Requests = s.Content.Options.Requests
 	s.Concurrency = s.Content.Options.Concurrency
 	s.Nodes = s.Content.Options.Nodes
-
 	if s.Port <= 0 {
 		s.Port = s.Content.Options.Port
 	}
@@ -213,7 +212,7 @@ func (s *TcpServer) handleServerState(state string) {
 	case SERVER_NODES_READY:
 		p := &Packet{Action: START_REQUESTS}
 		for client := range s.clients {
-			s.sendMessage(p, client)
+				s.sendMessage(p, client)
 		}
 		s.stateCh <- SERVER_CLIENTS_STARTED_FLOW
 	case SERVER_CLIENTS_STARTED_FLOW:
@@ -244,4 +243,4 @@ func (s *TcpServer) handleRequestResponse(p Packet, client *Client) {
 	if s.reqRes == s.Requests {
 		s.hasFinished <- true
 	}
-}
+
